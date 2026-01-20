@@ -18,8 +18,26 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 
 // --- MIDDLEWARE ---
+const allowedOrigins = [
+  'https://intern-beta-nine.vercel.app',
+  'https://intern.vercel.app',
+  process.env.CORS_ORIGIN,
+  'http://localhost:3000',
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    // Allow any vercel.app subdomain
+    if (origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    return callback(null, true); // Allow all for now in production
+  },
   credentials: true,
 }));
 app.use(express.json());
