@@ -65,8 +65,33 @@ const adminMiddleware = (req, res, next) => {
 };
 
 // --- DATABASE CONNECTION ---
+const seedAdmin = async () => {
+  try {
+    const adminEmail = 'admin@store.com';
+    const existingAdmin = await User.findOne({ email: adminEmail });
+    if (!existingAdmin) {
+      console.log('🌱 Seeding admin user...');
+      const hashedPassword = await hashPassword('admin123');
+      await User.create({
+        name: 'Admin User',
+        email: adminEmail,
+        password: hashedPassword,
+        role: 'admin',
+      });
+      console.log('✅ Admin user created: admin@store.com / admin123');
+    } else {
+      console.log('ℹ️  Admin user already exists');
+    }
+  } catch (error) {
+    console.error('❌ Error seeding admin:', error);
+  }
+};
+
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log("MongoDB connected successfully"))
+  .then(() => {
+    console.log("MongoDB connected successfully");
+    seedAdmin();
+  })
   .catch(err => console.error("MongoDB connection error:", err));
 
 // --- API ROUTES ---
