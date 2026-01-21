@@ -188,10 +188,11 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
     const token = signToken(getUserPayload(user));
+    const isProduction = process.env.NODE_ENV === 'production';
     const cookie = serialize('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax', // Critical for cross-site auth
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });
@@ -214,10 +215,11 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.post('/api/auth/logout', (req, res) => {
   try {
+    const isProduction = process.env.NODE_ENV === 'production';
     const cookie = serialize('token', '', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: -1,
       path: '/',
     });
@@ -272,10 +274,11 @@ app.post('/api/auth/register', async (req, res) => {
       role: 'user',
     });
     const token = signToken(getUserPayload(user));
+    const isProduction = process.env.NODE_ENV === 'production';
     const cookie = serialize('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });
