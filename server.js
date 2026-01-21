@@ -82,6 +82,48 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // --- API ROUTES ---
 
+// TEMPORARY: Initial setup endpoint (remove after first use)
+app.get('/api/setup-database', async (req, res) => {
+  try {
+    // Check if already setup
+    const adminExists = await User.findOne({ email: 'admin@store.com' });
+    const productCount = await Product.countDocuments();
+
+    if (adminExists && productCount > 0) {
+      return res.json({ success: true, message: 'Database already setup' });
+    }
+
+    // Create admin user
+    if (!adminExists) {
+      const hashedPassword = await hashPassword('admin123');
+      await User.create({
+        name: 'Admin User',
+        email: 'admin@store.com',
+        password: hashedPassword,
+        role: 'admin',
+      });
+    }
+
+    // Seed products
+    if (productCount === 0) {
+      const productsToInsert = inventory.map(({ ...product }) => product);
+      await Product.insertMany(productsToInsert);
+    }
+
+    return res.json({
+      success: true,
+      message: 'Database setup complete! Admin: admin@store.com / admin123',
+      stats: {
+        adminCreated: !adminExists,
+        productsSeeded: productCount === 0 ? inventory.length : 0,
+      }
+    });
+  } catch (error) {
+    console.error('Setup error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Product Routes
 app.get('/api/products/seed', authMiddleware, adminMiddleware, async (/** @type {AuthRequest} */ req, res) => {
   try {
