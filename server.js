@@ -330,7 +330,15 @@ app.post('/api/orders', authMiddleware, async (/** @type {AuthRequest} */ req, r
       return res.status(400).json({ success: false, message: 'Please provide all required fields' });
     }
     for (const item of items) {
-      const product = await Product.findById(item.product);
+      // Try to find by MongoDB _id first, fall back to other fields if needed
+      let product;
+      try {
+        product = await Product.findById(item.product);
+      } catch (err) {
+        // If findById fails (e.g., invalid ObjectId format), try name lookup
+        product = await Product.findOne({ name: item.name });
+      }
+
       if (!product) {
         return res.status(404).json({ success: false, message: `Product ${item.name} not found` });
       }
@@ -348,7 +356,12 @@ app.post('/api/orders', authMiddleware, async (/** @type {AuthRequest} */ req, r
       orderStatus: 'processing',
     });
     for (const item of items) {
-      await Product.findByIdAndUpdate(item.product, { $inc: { currentInventory: -item.quantity } });
+      try {
+        await Product.findByIdAndUpdate(item.product, { $inc: { currentInventory: -item.quantity } });
+      } catch (err) {
+        // If findByIdAndUpdate fails, try updating by name
+        await Product.findOneAndUpdate({ name: item.name }, { $inc: { currentInventory: -item.quantity } });
+      }
     }
     await order.populate('items.product');
     return res.status(201).json({ success: true, message: 'Order created successfully', order });
