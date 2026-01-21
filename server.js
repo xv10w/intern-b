@@ -18,26 +18,8 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 
 // --- MIDDLEWARE ---
-const allowedOrigins = [
-  'https://intern-beta-nine.vercel.app',
-  'https://intern.vercel.app',
-  process.env.CORS_ORIGIN,
-  'http://localhost:3000',
-].filter(Boolean);
-
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    // Allow any vercel.app subdomain
-    if (origin.endsWith('.vercel.app')) {
-      return callback(null, true);
-    }
-    return callback(null, true); // Allow all for now in production
-  },
+  origin: process.env.CORS_ORIGIN || '*',
   credentials: true,
 }));
 app.use(express.json());
@@ -65,33 +47,8 @@ const adminMiddleware = (req, res, next) => {
 };
 
 // --- DATABASE CONNECTION ---
-const seedAdmin = async () => {
-  try {
-    const adminEmail = 'admin@store.com';
-    const existingAdmin = await User.findOne({ email: adminEmail });
-    if (!existingAdmin) {
-      console.log('🌱 Seeding admin user...');
-      const hashedPassword = await hashPassword('admin123');
-      await User.create({
-        name: 'Admin User',
-        email: adminEmail,
-        password: hashedPassword,
-        role: 'admin',
-      });
-      console.log('✅ Admin user created: admin@store.com / admin123');
-    } else {
-      console.log('ℹ️  Admin user already exists');
-    }
-  } catch (error) {
-    console.error('❌ Error seeding admin:', error);
-  }
-};
-
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log("MongoDB connected successfully");
-    seedAdmin();
-  })
+  .then(() => console.log("MongoDB connected successfully"))
   .catch(err => console.error("MongoDB connection error:", err));
 
 // --- API ROUTES ---
@@ -217,7 +174,7 @@ app.post('/api/auth/login', async (req, res) => {
     const cookie = serialize('token', token, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax', // Critical for cross-site auth
+      sameSite: isProduction ? 'none' : 'lax', // MUST be 'none' for cross-domain
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });
@@ -303,7 +260,7 @@ app.post('/api/auth/register', async (req, res) => {
     const cookie = serialize('token', token, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite: isProduction ? 'none' : 'lax', // MUST be 'none' for cross-domain
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });
