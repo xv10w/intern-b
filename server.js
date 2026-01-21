@@ -48,12 +48,20 @@ app.use(cookieParser());
 
 // --- AUTH MIDDLEWARE ---
 const authMiddleware = (req, res, next) => {
+  // --- Start of temporary logging ---
+  console.log('--- Auth Middleware Check ---');
+  console.log('Raw Cookie Header:', req.headers.cookie);
+  console.log('Parsed Cookies (req.cookies):', req.cookies);
+  // --- End of temporary logging ---
+
   const token = req.cookies.token;
   if (!token) {
+    console.log('Error: Token not found in req.cookies.');
     return res.status(401).json({ success: false, message: 'Authentication required' });
   }
   const decoded = verifyToken(token);
   if (!decoded) {
+    console.log('Error: Token is invalid or expired.');
     return res.status(401).json({ success: false, message: 'Invalid or expired token' });
   }
   req.user = decoded;
